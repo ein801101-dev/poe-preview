@@ -1,0 +1,464 @@
+<!DOCTYPE html><html lang="zh-Hant"><head><meta name="x-poe-datastore-behavior" content="local_only"><meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://code.jquery.com https://unpkg.com https://d3js.org https://threejs.org https://cdn.plot.ly https://stackpath.bootstrapcdn.com https://maps.googleapis.com https://cdn.tailwindcss.com https://ajax.googleapis.com https://kit.fontawesome.com https://cdn.datatables.net https://maxcdn.bootstrapcdn.com https://code.highcharts.com https://tako-static-assets-production.s3.amazonaws.com https://www.youtube.com https://fonts.googleapis.com https://fonts.gstatic.com https://pfst.cf2.poecdn.net https://puc.poecdn.net https://i.imgur.com https://wikimedia.org https://*.icons8.com https://*.giphy.com https://picsum.photos https://images.unsplash.com; frame-src 'self' https://www.youtube.com https://trytako.com; child-src 'self'; manifest-src 'self'; worker-src 'self'; upgrade-insecure-requests; block-all-mixed-content;">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>披薩訂單統計儀表板</title>
+<style>
+*{box-sizing:border-box}
+body{font-family:"Microsoft JhengHei","PingFang TC","Noto Sans TC",sans-serif;background:#f6f1ea;color:#3b2f2a;margin:0;padding:20px;line-height:1.5}
+header{background:linear-gradient(135deg,#c0392b,#e67e22);color:#fff;border-radius:16px;padding:22px 26px;margin-bottom:18px}
+header h1{margin:0 0 6px;font-size:26px}
+header p{margin:0;opacity:.92;font-size:14px}
+nav{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:18px}
+nav a{background:#fff;color:#c0392b;text-decoration:none;padding:7px 14px;border-radius:20px;font-size:14px;box-shadow:0 2px 6px rgba(0,0,0,.06)}
+h2.sec{font-size:20px;margin:28px 0 12px;padding-left:10px;border-left:5px solid #c0392b}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(165px,1fr));gap:12px;margin-bottom:16px}
+.kpi{background:#fff;border-radius:14px;padding:16px;box-shadow:0 2px 8px rgba(0,0,0,.06)}
+.kpi .l{font-size:13px;color:#8a7a70}
+.kpi .v{font-size:24px;font-weight:bold;color:#c0392b;margin-top:4px}
+.kpi .s{font-size:12px;color:#a09086;margin-top:2px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
+@media(max-width:900px){.grid{grid-template-columns:1fr}}
+.card{background:#fff;border-radius:14px;padding:18px;box-shadow:0 2px 8px rgba(0,0,0,.06);margin-bottom:16px}
+.grid .card{margin-bottom:0}
+.card h3{margin:0 0 12px;font-size:17px}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th,td{padding:7px 9px;text-align:right;border-bottom:1px solid #f0e8e1;white-space:nowrap}
+th:first-child,td:first-child{text-align:left}
+th{background:#fbf6f1;color:#6b5a50}
+td.d{text-align:left;white-space:normal;font-size:12px;color:#6b5a50;min-width:240px}
+.scroll{overflow:auto;max-height:640px}
+.hbar{display:flex;align-items:center;gap:8px;margin:6px 0;font-size:13px}
+.hbar .lab{width:150px;flex-shrink:0;text-align:right;color:#6b5a50}
+.hbar .track{flex:1;background:#f3ebe4;border-radius:6px;height:22px;overflow:hidden;display:flex}
+.hbar .fill{height:100%;border-radius:6px;display:block}
+.hbar .val{width:140px;flex-shrink:0}
+.stk{height:100%;color:#fff;font-size:11px;text-align:center;line-height:22px;overflow:hidden}
+.vchart{display:flex;align-items:flex-end;justify-content:space-around;height:230px;border-bottom:2px solid #d9cbbf;padding-top:10px}
+.vcol{width:18%;display:flex;flex-direction:column;justify-content:flex-end;align-items:stretch;height:100%;text-align:center}
+.vcol .top{font-size:13px;font-weight:bold;margin-bottom:3px}
+.seg{color:#fff;font-size:12px;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.vlab{display:flex;justify-content:space-around;font-size:13px;color:#6b5a50;margin-top:6px}
+.vlab span{width:18%;text-align:center}
+.legend{display:flex;flex-wrap:wrap;gap:14px;font-size:13px;margin-bottom:8px}
+.legend i{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+.donuts{display:flex;flex-wrap:wrap;gap:26px;justify-content:center;align-items:center}
+.donut{width:170px;height:170px;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto}
+.hole{width:100px;height:100px;border-radius:50%;background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;font-weight:bold;font-size:20px;color:#c0392b}
+.hole small{font-size:12px;color:#8a7a70;font-weight:normal}
+.dcap{text-align:center;font-size:13px;margin-top:6px;color:#6b5a50}
+.t{display:inline-block;padding:0 7px;border-radius:10px;font-size:12px;color:#fff;margin:1px}
+.tb{background:#e67e22}.th{background:#c0392b}.tm{background:#d4ac0d}
+td.h0,td.h1,td.h2,td.h3,td.h4{text-align:center;font-weight:bold;min-width:44px}
+.h0{background:#faf6f2}.h1{background:#fde3c8}.h2{background:#f8b878}.h3{background:#f0893a;color:#fff}.h4{background:#c0392b;color:#fff}
+.note{background:#fff4e5;border-left:4px solid #e67e22;padding:10px 14px;border-radius:8px;font-size:13px;line-height:1.75;margin-top:12px}
+details{margin-top:10px;font-size:13px;line-height:1.9}
+summary{cursor:pointer;font-weight:bold;color:#c0392b}
+.rk{display:inline-block;width:22px;height:22px;border-radius:50%;background:#e9dfd6;color:#6b5a50;text-align:center;line-height:22px;font-size:12px;font-weight:bold;margin-right:4px}
+.rk1{background:#d4ac0d;color:#fff}.rk2{background:#a6acaf;color:#fff}.rk3{background:#ca6f1e;color:#fff}
+footer{text-align:center;font-size:12px;color:#a09086;margin-top:20px}
+</style>
+</head>
+<body>
+
+<header>
+<h1>🍕 披薩訂單統計儀表板</h1>
+<p>資料範圍：2026/8/2～11/24 的私單檔案｜依查詢序號去重（8/18 重複檔只算一次）｜月份依檔名日期｜餅皮依口味判定（松露野菇＝薄皮）</p>
+</header>
+
+<nav>
+<a href="#m">📅 每月趨勢</a><a href="#f">🍕 口味排行</a><a href="#c">🥖 厚皮／薄皮</a><a href="#b">👥 購買人次數</a>
+</nav>
+
+<section class="kpis">
+<div class="kpi"><div class="l">訂單</div><div class="v">258 筆</div><div class="s">8/2～11/24</div></div>
+<div class="kpi"><div class="l">總片數</div><div class="v">30,349</div><div class="s">平均每筆 118 片</div></div>
+<div class="kpi"><div class="l">最旺月份</div><div class="v">9月</div><div class="s">13,798 片／111 筆</div></div>
+<div class="kpi"><div class="l">第一名口味</div><div class="v">夏威夷</div><div class="s">三條產品線合計 5,558 片</div></div>
+<div class="kpi"><div class="l">購買人</div><div class="v">138 位</div><div class="s">回購客 58 位（42%）</div></div>
+<div class="kpi"><div class="l">薄皮</div><div class="v">20,255 片</div><div class="s">66.7%｜含薄皮訂單 208 次</div></div>
+<div class="kpi"><div class="l">厚皮</div><div class="v">10,094 片</div><div class="s">33.3%｜含厚皮訂單 156 次</div></div>
+</section>
+
+<!-- ================= 每月趨勢 ================= -->
+<h2 class="sec" id="m">📅 每月趨勢</h2>
+<section class="grid">
+<div class="card">
+<h3>每月片數（長條）與筆數（折線）</h3>
+<div class="legend"><span><i style="background:#e67e22"></i>片數（左軸）</span><span><i style="background:#c0392b"></i>筆數（右軸）</span></div>
+<svg viewBox="0 0 600 300" width="100%" style="max-width:640px;display:block;margin:auto" font-family="Microsoft JhengHei,PingFang TC,sans-serif">
+ <g stroke="#eee5dc" stroke-width="1">
+  <line x1="60" y1="30" x2="570" y2="30"></line><line x1="60" y1="103.3" x2="570" y2="103.3"></line><line x1="60" y1="176.7" x2="570" y2="176.7"></line>
+ </g>
+ <line x1="60" y1="250" x2="570" y2="250" stroke="#cbb9aa" stroke-width="2"></line>
+ <g font-size="12" fill="#8a7a70" text-anchor="end">
+  <text x="54" y="254">0</text><text x="54" y="180.7">5,000</text><text x="54" y="107.3">10,000</text><text x="54" y="34">15,000</text>
+ </g>
+ <g font-size="12" fill="#c0392b" text-anchor="start">
+  <text x="576" y="254">0</text><text x="576" y="180.7">40</text><text x="576" y="107.3">80</text><text x="576" y="34">120</text>
+ </g>
+ <g fill="#e67e22">
+  <rect x="85" y="137" width="70" height="113" rx="4"></rect>
+  <rect x="225" y="47.6" width="70" height="202.4" rx="4"></rect>
+  <rect x="365" y="225.7" width="70" height="24.3" rx="4" fill="#f0a35e"></rect>
+  <rect x="505" y="144.6" width="70" height="105.4" rx="4"></rect>
+ </g>
+ <g font-size="12" fill="#fff" text-anchor="middle" font-weight="bold">
+  <text x="120" y="162">7,708</text><text x="260" y="75">13,798</text><text x="400" y="243">1,658</text><text x="540" y="170">7,185</text>
+ </g>
+ <polyline points="120,112.5 260,46.5 400,220.7 540,147.3" fill="none" stroke="#c0392b" stroke-width="3"></polyline>
+ <g fill="#c0392b"><circle cx="120" cy="112.5" r="5"></circle><circle cx="260" cy="46.5" r="5"></circle><circle cx="400" cy="220.7" r="5"></circle><circle cx="540" cy="147.3" r="5"></circle></g>
+ <g font-size="13" fill="#c0392b" text-anchor="middle" font-weight="bold">
+  <text x="120" y="100">75 筆</text><text x="260" y="24">111 筆</text><text x="400" y="207">16 筆</text><text x="540" y="134">56 筆</text>
+ </g>
+ <g font-size="14" fill="#3b2f2a" text-anchor="middle">
+  <text x="120" y="272">8月</text><text x="260" y="272">9月</text><text x="400" y="272">10月*</text><text x="540" y="272">11月</text>
+ </g>
+ <text x="300" y="294" font-size="11" fill="#a09086" text-anchor="middle">* 10月只有 10/4、10/11、10/29 三天的檔案｜11月統計到 11/24</text>
+</svg>
+</div>
+
+<div class="card">
+<h3>產品線片數</h3>
+<div class="hbar"><span class="lab">瑪莉屋團購（口袋6吋）</span><span class="track"><span class="fill" style="width:100%;background:#c0392b"></span></span><span class="val">19,011 片／115 筆</span></div>
+<div class="hbar"><span class="lab">新版批發（手拍薄皮）</span><span class="track"><span class="fill" style="width:38.3%;background:#e67e22"></span></span><span class="val">7,278 片／97 筆</span></div>
+<div class="hbar"><span class="lab">小瑪莉批發（厚皮）</span><span class="track"><span class="fill" style="width:21.4%;background:#922b21"></span></span><span class="val">4,060 片／46 筆</span></div>
+<table style="margin-top:14px">
+<tbody><tr><th>月份</th><th>筆數</th><th>片數</th><th>平均/筆</th><th>瑪莉屋團購</th><th>新版批發</th><th>小瑪莉批發</th></tr>
+<tr><td>8月</td><td>75</td><td>7,708</td><td>103</td><td>24筆／3,911</td><td>36筆／2,537</td><td>15筆／1,260</td></tr>
+<tr><td>9月</td><td>111</td><td>13,798</td><td>124</td><td>62筆／9,571</td><td>35筆／2,687</td><td>14筆／1,540</td></tr>
+<tr><td>10月*</td><td>16</td><td>1,658</td><td>104</td><td>4筆／640</td><td>8筆／738</td><td>4筆／280</td></tr>
+<tr><td>11月</td><td>56</td><td>7,185</td><td>128</td><td>25筆／4,889</td><td>18筆／1,316</td><td>13筆／980</td></tr>
+<tr><th>合計</th><th>258</th><th>30,349</th><th>118</th><th>115筆／19,011</th><th>97筆／7,278</th><th>46筆／4,060</th></tr>
+</tbody></table>
+<div class="note">✅ 「私單-20260818(oK) (2)」和 8/18、8/19 的檔案內容重複，只算一次。</div>
+</div>
+</section>
+
+<!-- ================= 口味排行 ================= -->
+<h2 class="sec" id="f">🍕 口味排行</h2>
+<section class="card">
+<h3>全部產品線合併（口味相近的合在一起）</h3>
+<div class="hbar"><span class="lab"><span class="rk rk1">1</span>夏威夷</span><span class="track"><span class="fill" style="width:100%;background:#c0392b"></span></span><span class="val">5,558 片（18.3%）</span></div>
+<div class="hbar"><span class="lab"><span class="rk rk2">2</span>嫩雞／燻雞</span><span class="track"><span class="fill" style="width:76.2%;background:#c0392b"></span></span><span class="val">4,234 片（13.9%）</span></div>
+<div class="hbar"><span class="lab"><span class="rk rk3">3</span>瑪格麗特</span><span class="track"><span class="fill" style="width:65.3%;background:#c0392b"></span></span><span class="val">3,631 片（12.0%）</span></div>
+<div class="hbar"><span class="lab"><span class="rk">4</span>海鮮類</span><span class="track"><span class="fill" style="width:42.1%;background:#d35400"></span></span><span class="val">2,338 片（7.7%）</span></div>
+<div class="hbar"><span class="lab"><span class="rk">5</span>章魚燒</span><span class="track"><span class="fill" style="width:38.9%;background:#d35400"></span></span><span class="val">2,160 片（7.1%）</span></div>
+<div class="hbar"><span class="lab"><span class="rk">6</span>辣腸類</span><span class="track"><span class="fill" style="width:34.3%;background:#e67e22"></span></span><span class="val">1,904 片（6.3%）</span></div>
+<div class="hbar"><span class="lab"><span class="rk">7</span>鳳梨蝦球／鮮蝦</span><span class="track"><span class="fill" style="width:33.1%;background:#e67e22"></span></span><span class="val">1,840 片（6.1%）</span></div>
+<div class="hbar"><span class="lab"><span class="rk">8</span>牛排／牛肉</span><span class="track"><span class="fill" style="width:32.5%;background:#e67e22"></span></span><span class="val">1,806 片（5.9%）</span></div>
+<div class="hbar"><span class="lab"><span class="rk">9</span>韓風泡菜豬肉</span><span class="track"><span class="fill" style="width:20.5%;background:#f0a35e"></span></span><span class="val">1,138 片（3.7%）</span></div>
+<div class="hbar"><span class="lab"><span class="rk">10</span>青醬菇菇／野菇</span><span class="track"><span class="fill" style="width:17.5%;background:#f0a35e"></span></span><span class="val">971 片（3.2%）</span></div>
+<div class="hbar"><span class="lab"><span class="rk">11</span>招牌宮保雞丁</span><span class="track"><span class="fill" style="width:16.8%;background:#f0a35e"></span></span><span class="val">931 片（3.1%）</span></div>
+<div class="hbar"><span class="lab"><span class="rk">12</span>榴槤</span><span class="track"><span class="fill" style="width:15%;background:#f0a35e"></span></span><span class="val">831 片（2.7%）</span></div>
+<div class="note">合併方式：嫩雞／燻雞＝蕈菇煙燻嫩雞＋蘑菇嫩雞＋小瑪莉燻雞｜海鮮類＝熱海蟳味三鮮＋海鮮總匯＋小瑪莉海鮮｜辣腸類＝墨西哥辣腸＋德式辣腸＋小瑪莉辣腸｜鳳梨蝦球＋小瑪莉鮮蝦鳳梨｜牛排＋小瑪莉牛肉｜青醬菇菇＋青醬野菇。</div>
+</section>
+
+<section class="grid">
+<div class="card">
+<h3>瑪莉屋團購（口袋6吋）口味排行</h3>
+<div class="legend"><span><i style="background:#e67e22"></i>薄皮口味</span><span><i style="background:#c0392b"></i>厚皮口味</span></div>
+<div class="hbar"><span class="lab"><span class="rk rk1">1</span>豪華夏威夷</span><span class="track"><span class="fill" style="width:100%;background:#e67e22"></span></span><span class="val">3,035（15.9%）</span></div>
+<div class="hbar"><span class="lab"><span class="rk rk2">2</span>瑪格麗特</span><span class="track"><span class="fill" style="width:76.8%;background:#e67e22"></span></span><span class="val">2,330（12.2%）</span></div>
+<div class="hbar"><span class="lab"><span class="rk rk3">3</span>和風章魚燒</span><span class="track"><span class="fill" style="width:61.6%;background:#e67e22"></span></span><span class="val">1,869（9.8%）</span></div>
+<div class="hbar"><span class="lab"><span class="rk">4</span>蕈菇煙燻嫩雞</span><span class="track"><span class="fill" style="width:57%;background:#e67e22"></span></span><span class="val">1,729（9.1%）</span></div>
+<div class="hbar"><span class="lab"><span class="rk">5</span>主廚鳳梨蝦球</span><span class="track"><span class="fill" style="width:46.4%;background:#e67e22"></span></span><span class="val">1,407（7.4%）</span></div>
+<div class="hbar"><span class="lab"><span class="rk">6</span>韓風泡菜豬肉</span><span class="track"><span class="fill" style="width:37.5%;background:#c0392b"></span></span><span class="val">1,138（6.0%）</span></div>
+<div class="hbar"><span class="lab"><span class="rk">7</span>風味特醃牛排</span><span class="track"><span class="fill" style="width:34%;background:#c0392b"></span></span><span class="val">1,031（5.4%）</span></div>
+<div class="hbar"><span class="lab"><span class="rk">8</span>熱海蟳味三鮮</span><span class="track"><span class="fill" style="width:33.7%;background:#c0392b"></span></span><span class="val">1,024（5.4%）</span></div>
+<div class="hbar"><span class="lab"><span class="rk">9</span>招牌宮保雞丁</span><span class="track"><span class="fill" style="width:30.7%;background:#c0392b"></span></span><span class="val">931（4.9%）</span></div>
+<div class="hbar"><span class="lab"><span class="rk">10</span>榴槤口味</span><span class="track"><span class="fill" style="width:27.4%;background:#e67e22"></span></span><span class="val">831（4.4%）</span></div>
+<div class="hbar"><span class="lab"><span class="rk">11</span>墨西哥辣腸</span><span class="track"><span class="fill" style="width:22.9%;background:#e67e22"></span></span><span class="val">694（3.6%）</span></div>
+<div class="hbar"><span class="lab"><span class="rk">12</span>經典肉醬香腸</span><span class="track"><span class="fill" style="width:21.1%;background:#c0392b"></span></span><span class="val">641（3.4%）</span></div>
+<div class="hbar"><span class="lab"><span class="rk">13</span>青醬菇菇</span><span class="track"><span class="fill" style="width:18.5%;background:#c0392b"></span></span><span class="val">560（2.9%）</span></div>
+<div class="hbar"><span class="lab"><span class="rk">14</span>香蒜培根玉米</span><span class="track"><span class="fill" style="width:14.6%;background:#c0392b"></span></span><span class="val">443（2.3%）</span></div>
+<div class="hbar"><span class="lab"><span class="rk">15</span>黑糖珍珠奶茶</span><span class="track"><span class="fill" style="width:13.8%;background:#e67e22"></span></span><span class="val">419（2.2%）</span></div>
+<div class="hbar"><span class="lab"><span class="rk">16</span>椰菜鮮菇</span><span class="track"><span class="fill" style="width:11.9%;background:#e67e22"></span></span><span class="val">362（1.9%）</span></div>
+<div class="hbar"><span class="lab"><span class="rk">17</span>南洋果香咖哩</span><span class="track"><span class="fill" style="width:8.8%;background:#c0392b"></span></span><span class="val">266（1.4%）</span></div>
+<div class="hbar"><span class="lab"><span class="rk">18</span>芋頭鹹蛋</span><span class="track"><span class="fill" style="width:8%;background:#e67e22"></span></span><span class="val">243（1.3%）</span></div>
+<div class="hbar"><span class="lab"><span class="rk">19</span>松露野菇</span><span class="track"><span class="fill" style="width:3.3%;background:#e67e22"></span></span><span class="val">100（0.5%）</span></div>
+</div>
+
+<div class="card">
+<h3>瑪莉屋團購：各口味每月片數</h3>
+<div class="scroll">
+<table>
+<tbody><tr><th>口味</th><th>餅皮</th><th>8月</th><th>9月</th><th>10月*</th><th>11月</th><th>合計</th></tr>
+<tr><td>豪華夏威夷</td><td><span class="t tb">薄</span></td><td>614</td><td>1,399</td><td>320</td><td>702</td><td><b>3,035</b></td></tr>
+<tr><td>瑪格麗特</td><td><span class="t tb">薄</span></td><td>398</td><td>1,136</td><td>320</td><td>476</td><td><b>2,330</b></td></tr>
+<tr><td>和風章魚燒</td><td><span class="t tb">薄</span></td><td>347</td><td>989</td><td>0</td><td>533</td><td><b>1,869</b></td></tr>
+<tr><td>蕈菇煙燻嫩雞</td><td><span class="t tb">薄</span></td><td>406</td><td>861</td><td>0</td><td>462</td><td><b>1,729</b></td></tr>
+<tr><td>主廚鳳梨蝦球</td><td><span class="t tb">薄</span></td><td>256</td><td>765</td><td>0</td><td>386</td><td><b>1,407</b></td></tr>
+<tr><td>韓風泡菜豬肉</td><td><span class="t th">厚</span></td><td>241</td><td>595</td><td>0</td><td>302</td><td><b>1,138</b></td></tr>
+<tr><td>風味特醃牛排</td><td><span class="t th">厚</span></td><td>230</td><td>517</td><td>0</td><td>284</td><td><b>1,031</b></td></tr>
+<tr><td>熱海蟳味三鮮</td><td><span class="t th">厚</span></td><td>196</td><td>535</td><td>0</td><td>293</td><td><b>1,024</b></td></tr>
+<tr><td>招牌宮保雞丁</td><td><span class="t th">厚</span></td><td>206</td><td>502</td><td>0</td><td>223</td><td><b>931</b></td></tr>
+<tr><td>榴槤口味</td><td><span class="t tb">薄</span></td><td>58</td><td>593</td><td>0</td><td>180</td><td><b>831</b></td></tr>
+<tr><td>墨西哥辣腸</td><td><span class="t tb">薄</span></td><td>189</td><td>320</td><td>0</td><td>185</td><td><b>694</b></td></tr>
+<tr><td>經典肉醬香腸</td><td><span class="t th">厚</span></td><td>181</td><td>279</td><td>0</td><td>181</td><td><b>641</b></td></tr>
+<tr><td>青醬菇菇</td><td><span class="t th">厚</span></td><td>140</td><td>238</td><td>0</td><td>182</td><td><b>560</b></td></tr>
+<tr><td>香蒜培根玉米</td><td><span class="t th">厚</span></td><td>102</td><td>209</td><td>0</td><td>132</td><td><b>443</b></td></tr>
+<tr><td>黑糖珍珠奶茶</td><td><span class="t tb">薄</span></td><td>71</td><td>198</td><td>0</td><td>150</td><td><b>419</b></td></tr>
+<tr><td>椰菜鮮菇</td><td><span class="t tb">薄</span></td><td>76</td><td>200</td><td>0</td><td>86</td><td><b>362</b></td></tr>
+<tr><td>南洋果香咖哩</td><td><span class="t th">厚</span></td><td>68</td><td>125</td><td>0</td><td>73</td><td><b>266</b></td></tr>
+<tr><td>芋頭鹹蛋</td><td><span class="t tb">薄</span></td><td>42</td><td>142</td><td>0</td><td>59</td><td><b>243</b></td></tr>
+<tr><td>松露野菇</td><td><span class="t tb">薄</span></td><td>90</td><td>10</td><td>0</td><td>0</td><td><b>100</b></td></tr>
+<tr><th>合計</th><th></th><th>3,911</th><th>9,613</th><th>640</th><th>4,889</th><th>19,053</th></tr>
+</tbody></table>
+</div>
+<div class="note">💡 夏威夷、瑪格麗特兩個口味就占團購量的 28%，建議優先備料。<br>💡 榴槤 9 月衝到 593 片（8 月只有 58 片），季節限定口味可以把握旺季。<br>※ 10 月團購單只有瑪格麗特和夏威夷兩種口味。</div>
+</div>
+</section>
+
+<section class="grid">
+<div class="card">
+<h3>新版批發（手拍薄皮）口味排行</h3>
+<div class="hbar"><span class="lab"><span class="rk rk1">1</span>蘑菇嫩雞</span><span class="track"><span class="fill" style="width:100%;background:#e67e22"></span></span><span class="val">1,876（25.8%）</span></div>
+<div class="hbar"><span class="lab"><span class="rk rk2">2</span>夏威夷</span><span class="track"><span class="fill" style="width:76.7%;background:#e67e22"></span></span><span class="val">1,439（19.8%）</span></div>
+<div class="hbar"><span class="lab"><span class="rk rk3">3</span>瑪格麗特</span><span class="track"><span class="fill" style="width:69.3%;background:#e67e22"></span></span><span class="val">1,301（17.9%）</span></div>
+<div class="hbar"><span class="lab"><span class="rk">4</span>德式辣腸</span><span class="track"><span class="fill" style="width:56.4%;background:#f0a35e"></span></span><span class="val">1,058（14.6%）</span></div>
+<div class="hbar"><span class="lab"><span class="rk">5</span>海鮮總匯</span><span class="track"><span class="fill" style="width:46.1%;background:#f0a35e"></span></span><span class="val">865（11.9%）</span></div>
+<div class="hbar"><span class="lab"><span class="rk">6</span>青醬野菇</span><span class="track"><span class="fill" style="width:21.9%;background:#f5c08a"></span></span><span class="val">411（5.7%）</span></div>
+<div class="hbar"><span class="lab"><span class="rk">7</span>野菜田園</span><span class="track"><span class="fill" style="width:16.3%;background:#f5c08a"></span></span><span class="val">306（4.2%）</span></div>
+<div class="hbar"><span class="lab"><span class="rk">8</span>薯泥培根</span><span class="track"><span class="fill" style="width:.4%;background:#f5c08a"></span></span><span class="val">7（0.1%）</span></div>
+<table style="margin-top:12px">
+<tbody><tr><th>口味</th><th>8月</th><th>9月</th><th>10月*</th><th>11月</th><th>合計</th></tr>
+<tr><td>蘑菇嫩雞</td><td>681</td><td>693</td><td>175</td><td>327</td><td><b>1,876</b></td></tr>
+<tr><td>夏威夷</td><td>436</td><td>446</td><td>300</td><td>257</td><td><b>1,439</b></td></tr>
+<tr><td>瑪格麗特</td><td>478</td><td>481</td><td>65</td><td>277</td><td><b>1,301</b></td></tr>
+<tr><td>德式辣腸</td><td>367</td><td>424</td><td>70</td><td>197</td><td><b>1,058</b></td></tr>
+<tr><td>海鮮總匯</td><td>340</td><td>333</td><td>60</td><td>132</td><td><b>865</b></td></tr>
+<tr><td>青醬野菇</td><td>132</td><td>179</td><td>18</td><td>82</td><td><b>411</b></td></tr>
+<tr><td>野菜田園</td><td>98</td><td>131</td><td>50</td><td>27</td><td><b>306</b></td></tr>
+<tr><td>薯泥培根</td><td>5</td><td>0</td><td>0</td><td>2</td><td><b>7</b></td></tr>
+</tbody></table>
+<div class="note">蘑菇嫩雞的量有 45% 來自大聚鸚鵡螺廣場（共 840 片）。<br>meet蘋果咖啡館的「海蟳味」算進海鮮總匯、「青醬菇菇」算進青醬野菇、「墨西哥辣腸」算進德式辣腸；根本在旅行的義式辣腸、嗆辣臘腸也算進德式辣腸。</div>
+</div>
+
+<div class="card">
+<h3>小瑪莉批發（厚皮）口味排行</h3>
+<div class="hbar"><span class="lab"><span class="rk rk1">1</span>夏威夷</span><span class="track"><span class="fill" style="width:100%;background:#c0392b"></span></span><span class="val">1,084（26.7%）</span></div>
+<div class="hbar"><span class="lab"><span class="rk rk2">2</span>香烤牛肉</span><span class="track"><span class="fill" style="width:71.5%;background:#c0392b"></span></span><span class="val">775（19.1%）</span></div>
+<div class="hbar"><span class="lab"><span class="rk rk3">3</span>燻雞／嫩雞</span><span class="track"><span class="fill" style="width:58%;background:#c0392b"></span></span><span class="val">629（15.5%）</span></div>
+<div class="hbar"><span class="lab"><span class="rk">4</span>海鮮總匯</span><span class="track"><span class="fill" style="width:41.4%;background:#d35400"></span></span><span class="val">449（11.1%）</span></div>
+<div class="hbar"><span class="lab"><span class="rk">5</span>鮮蝦鳳梨</span><span class="track"><span class="fill" style="width:39.9%;background:#d35400"></span></span><span class="val">433（10.7%）</span></div>
+<div class="hbar"><span class="lab"><span class="rk">6</span>照燒章魚</span><span class="track"><span class="fill" style="width:26.8%;background:#e67e22"></span></span><span class="val">291（7.2%）</span></div>
+<div class="hbar"><span class="lab"><span class="rk">7</span>野菜田園</span><span class="track"><span class="fill" style="width:17.7%;background:#f0a35e"></span></span><span class="val">192（4.7%）</span></div>
+<div class="hbar"><span class="lab"><span class="rk">8</span>德式辣腸</span><span class="track"><span class="fill" style="width:14%;background:#f0a35e"></span></span><span class="val">152（3.7%）</span></div>
+<div class="hbar"><span class="lab"><span class="rk">9</span>培根玉米</span><span class="track"><span class="fill" style="width:3.2%;background:#f5c08a"></span></span><span class="val">35（0.9%）</span></div>
+<div class="hbar"><span class="lab"><span class="rk">10</span>蜜菇／杏鮑菇</span><span class="track"><span class="fill" style="width:1.8%;background:#f5c08a"></span></span><span class="val">20（0.5%）</span></div>
+<table style="margin-top:12px">
+<tbody><tr><th>口味</th><th>8月</th><th>9月</th><th>10月*</th><th>11月</th><th>合計</th></tr>
+<tr><td>夏威夷</td><td>347</td><td>405</td><td>80</td><td>252</td><td><b>1,084</b></td></tr>
+<tr><td>香烤牛肉</td><td>200</td><td>300</td><td>50</td><td>225</td><td><b>775</b></td></tr>
+<tr><td>燻雞／嫩雞</td><td>196</td><td>260</td><td>45</td><td>128</td><td><b>629</b></td></tr>
+<tr><td>海鮮總匯</td><td>160</td><td>152</td><td>25</td><td>112</td><td><b>449</b></td></tr>
+<tr><td>鮮蝦鳳梨</td><td>122</td><td>200</td><td>30</td><td>81</td><td><b>433</b></td></tr>
+<tr><td>照燒章魚</td><td>95</td><td>98</td><td>15</td><td>83</td><td><b>291</b></td></tr>
+<tr><td>野菜田園</td><td>63</td><td>57</td><td>20</td><td>52</td><td><b>192</b></td></tr>
+<tr><td>德式辣腸</td><td>52</td><td>63</td><td>5</td><td>32</td><td><b>152</b></td></tr>
+<tr><td>培根玉米</td><td>15</td><td>0</td><td>10</td><td>10</td><td><b>35</b></td></tr>
+<tr><td>蜜菇／杏鮑菇</td><td>10</td><td>5</td><td>0</td><td>5</td><td><b>20</b></td></tr>
+</tbody></table>
+<div class="note">鮮蝦鳳梨幾乎都是曾文水庫訂的（433 片裡占 410 片）。</div>
+</div>
+</section>
+
+<!-- ================= 厚皮薄皮 ================= -->
+<h2 class="sec" id="c">🥖 厚皮／薄皮統計</h2>
+<section class="grid">
+<div class="card">
+<h3>每月厚皮／薄皮片數</h3>
+<div class="legend"><span><i style="background:#e67e22"></i>薄皮</span><span><i style="background:#c0392b"></i>厚皮</span></div>
+<div class="vchart">
+ <div class="vcol"><div class="top">7,708</div><div class="seg" style="height:70px;background:#e67e22">5,084</div><div class="seg" style="height:36px;background:#c0392b">2,624</div></div>
+ <div class="vcol"><div class="top">13,798</div><div class="seg" style="height:127px;background:#e67e22">9,258</div><div class="seg" style="height:63px;background:#c0392b">4,540</div></div>
+ <div class="vcol"><div class="top">1,658</div><div class="seg" style="height:19px;background:#e67e22">1,378</div><div class="seg" style="height:4px;background:#c0392b"></div></div>
+ <div class="vcol"><div class="top">7,185</div><div class="seg" style="height:62px;background:#e67e22">4,535</div><div class="seg" style="height:36px;background:#c0392b">2,650</div></div>
+</div>
+<div class="vlab"><span>8月</span><span>9月</span><span>10月*</span><span>11月</span></div>
+<h3 style="margin-top:18px">各月片數比例</h3>
+<div class="hbar"><span class="lab">8月</span><span class="track"><span class="stk" style="width:66%;background:#e67e22">薄 66.0%</span><span class="stk" style="width:34%;background:#c0392b">厚 34.0%</span></span></div>
+<div class="hbar"><span class="lab">9月</span><span class="track"><span class="stk" style="width:67.1%;background:#e67e22">薄 67.1%</span><span class="stk" style="width:32.9%;background:#c0392b">厚 32.9%</span></span></div>
+<div class="hbar"><span class="lab">10月*</span><span class="track"><span class="stk" style="width:83.1%;background:#e67e22">薄 83.1%</span><span class="stk" style="width:16.9%;background:#c0392b">厚</span></span></div>
+<div class="hbar"><span class="lab">11月</span><span class="track"><span class="stk" style="width:63.1%;background:#e67e22">薄 63.1%</span><span class="stk" style="width:36.9%;background:#c0392b">厚 36.9%</span></span></div>
+<table style="margin-top:12px">
+<tbody><tr><th>片數</th><th>8月</th><th>9月</th><th>10月*</th><th>11月</th><th>合計</th></tr>
+<tr><td><span class="t th">厚皮</span></td><td>2,624</td><td>4,540</td><td>280</td><td>2,650</td><td><b>10,094</b></td></tr>
+<tr><td>　└ 瑪莉屋厚皮口味</td><td>1,364</td><td>3,000</td><td>0</td><td>1,670</td><td>6,034</td></tr>
+<tr><td>　└ 小瑪莉批發</td><td>1,260</td><td>1,540</td><td>280</td><td>980</td><td>4,060</td></tr>
+<tr><td><span class="t tb">薄皮</span></td><td>5,084</td><td>9,258</td><td>1,378</td><td>4,535</td><td><b>20,255</b></td></tr>
+<tr><td>　└ 瑪莉屋薄皮口味（含松露）</td><td>2,547</td><td>6,571</td><td>640</td><td>3,219</td><td>12,977</td></tr>
+<tr><td>　└ 新版批發</td><td>2,537</td><td>2,687</td><td>738</td><td>1,316</td><td>7,278</td></tr>
+</tbody></table>
+</div>
+
+<div class="card">
+<h3>每月訂單次數（只薄／只厚／厚薄都有）</h3>
+<div class="legend"><span><i style="background:#e67e22"></i>只買薄皮</span><span><i style="background:#c0392b"></i>只買厚皮</span><span><i style="background:#d4ac0d"></i>厚薄都有</span></div>
+<div class="hbar"><span class="lab">8月（75 筆）</span><span class="track"><span class="stk" style="width:48%;background:#e67e22">36</span><span class="stk" style="width:22.7%;background:#c0392b">17</span><span class="stk" style="width:29.3%;background:#d4ac0d">22</span></span></div>
+<div class="hbar"><span class="lab">9月（111 筆）</span><span class="track"><span class="stk" style="width:32.4%;background:#e67e22">36</span><span class="stk" style="width:14.4%;background:#c0392b">16</span><span class="stk" style="width:53.2%;background:#d4ac0d">59</span></span></div>
+<div class="hbar"><span class="lab">10月*（16 筆）</span><span class="track"><span class="stk" style="width:75%;background:#e67e22">12</span><span class="stk" style="width:25%;background:#c0392b">4</span></span></div>
+<div class="hbar"><span class="lab">11月（56 筆）</span><span class="track"><span class="stk" style="width:32.1%;background:#e67e22">18</span><span class="stk" style="width:23.2%;background:#c0392b">13</span><span class="stk" style="width:44.7%;background:#d4ac0d">25</span></span></div>
+<table style="margin-top:12px">
+<tbody><tr><th>訂單次數</th><th>8月</th><th>9月</th><th>10月*</th><th>11月</th><th>合計</th></tr>
+<tr><td><span class="t tb">只買薄皮</span></td><td>36</td><td>36</td><td>12</td><td>18</td><td><b>102</b></td></tr>
+<tr><td><span class="t th">只買厚皮</span></td><td>17</td><td>16</td><td>4</td><td>13</td><td><b>50</b></td></tr>
+<tr><td><span class="t tm">厚薄都有</span></td><td>22</td><td>59</td><td>0</td><td>25</td><td><b>106</b></td></tr>
+<tr><th>含薄皮的訂單</th><th>58</th><th>95</th><th>12</th><th>43</th><th>208</th></tr>
+<tr><th>含厚皮的訂單</th><th>39</th><th>75</th><th>4</th><th>38</th><th>156</th></tr>
+</tbody></table>
+<div class="donuts" style="margin-top:16px">
+ <div><div class="donut" style="background:conic-gradient(#e67e22 0 66.7%,#c0392b 66.7% 100%)"><div class="hole">30,349<small>片數</small></div></div><div class="dcap">薄 66.7%｜厚 33.3%</div></div>
+ <div><div class="donut" style="background:conic-gradient(#e67e22 0 39.5%,#d4ac0d 39.5% 80.6%,#c0392b 80.6% 100%)"><div class="hole">258<small>訂單</small></div></div><div class="dcap">只薄 39.5%｜都有 41.1%｜只厚 19.4%</div></div>
+</div>
+<div class="note">💡 瑪莉屋團購單：厚皮口味 6,034 片、薄皮口味 12,977 片，大約 <b>1 : 2</b>，備料可以照這個比例。<br>
+判定方式：瑪莉屋口袋比薩照口味表分（芋頭鹹蛋、榴槤、松露野菇算薄皮）｜新版批發訂單都寫【薄皮】｜小瑪莉批發有寫餅皮的都是厚皮，沒寫的也算厚皮。<br>* 10 月只有 3 天的檔案。</div>
+</div>
+</section>
+
+<!-- ================= 購買人 ================= -->
+<h2 class="sec" id="b">👥 購買人購買次數趨勢</h2>
+<section class="grid">
+<div class="card">
+<h3>每月購買人數：回購客 vs 新客</h3>
+<div class="legend"><span><i style="background:#c0392b"></i>回購客（之前月份買過）</span><span><i style="background:#e67e22"></i>當月第一次出現</span></div>
+<div class="vchart">
+ <div class="vcol"><div class="top">59 位</div><div class="seg" style="height:118px;background:#e67e22">59</div></div>
+ <div class="vcol"><div class="top">92 位</div><div class="seg" style="height:126px;background:#e67e22">63</div><div class="seg" style="height:58px;background:#c0392b">29</div></div>
+ <div class="vcol"><div class="top">12 位*</div><div class="seg" style="height:6px;background:#e67e22"></div><div class="seg" style="height:18px;background:#c0392b">9</div></div>
+ <div class="vcol"><div class="top">50 位</div><div class="seg" style="height:26px;background:#e67e22">13</div><div class="seg" style="height:74px;background:#c0392b">37</div></div>
+</div>
+<div class="vlab"><span>8月</span><span>9月</span><span>10月*</span><span>11月</span></div>
+<table style="margin-top:12px">
+<tbody><tr><th>月份</th><th>購買人</th><th>回購客</th><th>第一次出現</th><th>當月買 2 次以上</th></tr>
+<tr><td>8月</td><td>59</td><td>–（起始月）</td><td>59</td><td>11</td></tr>
+<tr><td>9月</td><td>92</td><td>29</td><td>63</td><td>16</td></tr>
+<tr><td>10月*</td><td>12</td><td>9</td><td>3</td><td>4</td></tr>
+<tr><td>11月</td><td>50</td><td>37</td><td>13</td><td>5</td></tr>
+</tbody></table>
+<div class="note">💡 11 月的 50 位購買人中有 37 位（74%）是回購客。</div>
+</div>
+
+<div class="card">
+<h3>購買次數分布（138 位）</h3>
+<div class="hbar"><span class="lab">買 1 次</span><span class="track"><span class="fill" style="width:100%;background:#b8aaa0"></span></span><span class="val">80 位</span></div>
+<div class="hbar"><span class="lab">買 2 次</span><span class="track"><span class="fill" style="width:40%;background:#f0a35e"></span></span><span class="val">32 位</span></div>
+<div class="hbar"><span class="lab">買 3 次</span><span class="track"><span class="fill" style="width:15%;background:#e67e22"></span></span><span class="val">12 位</span></div>
+<div class="hbar"><span class="lab">買 4 次</span><span class="track"><span class="fill" style="width:7.5%;background:#d35400"></span></span><span class="val">6 位</span></div>
+<div class="hbar"><span class="lab">買 5 次</span><span class="track"><span class="fill" style="width:3.75%;background:#c0392b"></span></span><span class="val">3 位</span></div>
+<div class="hbar"><span class="lab">買 6 次</span><span class="track"><span class="fill" style="width:3.75%;background:#c0392b"></span></span><span class="val">3 位</span></div>
+<div class="hbar"><span class="lab">買 8 次</span><span class="track"><span class="fill" style="width:1.25%;background:#922b21"></span></span><span class="val">1 位（大聚）</span></div>
+<div class="hbar"><span class="lab">買 13 次</span><span class="track"><span class="fill" style="width:1.25%;background:#922b21"></span></span><span class="val">1 位（曾文水庫）</span></div>
+<h3 style="margin-top:20px">片數 Top 10 購買人</h3>
+<div class="hbar"><span class="lab">黃婷儀</span><span class="track"><span class="fill" style="width:100%;background:#c0392b"></span></span><span class="val">1,667 片／2 次</span></div>
+<div class="hbar"><span class="lab">曾文水庫</span><span class="track"><span class="fill" style="width:96.6%;background:#c0392b"></span></span><span class="val">1,610 片／13 次</span></div>
+<div class="hbar"><span class="lab">大聚鸚鵡螺</span><span class="track"><span class="fill" style="width:84%;background:#c0392b"></span></span><span class="val">1,400 片／8 次</span></div>
+<div class="hbar"><span class="lab">小寶團購</span><span class="track"><span class="fill" style="width:55.3%;background:#e67e22"></span></span><span class="val">922 片／2 次</span></div>
+<div class="hbar"><span class="lab">杜雅鈴</span><span class="track"><span class="fill" style="width:51%;background:#e67e22"></span></span><span class="val">850 片／1 次</span></div>
+<div class="hbar"><span class="lab">揪愛購</span><span class="track"><span class="fill" style="width:48%;background:#e67e22"></span></span><span class="val">800 片／4 次</span></div>
+<div class="hbar"><span class="lab">李佳穎</span><span class="track"><span class="fill" style="width:42%;background:#e67e22"></span></span><span class="val">700 片／2 次</span></div>
+<div class="hbar"><span class="lab">陳鈺豐</span><span class="track"><span class="fill" style="width:40.3%;background:#e67e22"></span></span><span class="val">672 片／2 次</span></div>
+<div class="hbar"><span class="lab">阿默咖啡店</span><span class="track"><span class="fill" style="width:37.8%;background:#e67e22"></span></span><span class="val">630 片／5 次</span></div>
+<div class="hbar"><span class="lab">洪曉平</span><span class="track"><span class="fill" style="width:37.4%;background:#e67e22"></span></span><span class="val">623 片／2 次</span></div>
+</div>
+</section>
+
+<section class="card">
+<h3>購買次數 Top 15</h3>
+<div class="hbar"><span class="lab">曾文水庫觀景樓</span><span class="track"><span class="fill" style="width:100%;background:#c0392b"></span></span><span class="val">13 次／1,610 片</span></div>
+<div class="hbar"><span class="lab">大聚鸚鵡螺廣場</span><span class="track"><span class="fill" style="width:61.5%;background:#c0392b"></span></span><span class="val">8 次／1,400 片</span></div>
+<div class="hbar"><span class="lab">昭日咖啡</span><span class="track"><span class="fill" style="width:46.2%;background:#d35400"></span></span><span class="val">6 次／490 片</span></div>
+<div class="hbar"><span class="lab">GUGU Cafe</span><span class="track"><span class="fill" style="width:46.2%;background:#d35400"></span></span><span class="val">6 次／420 片</span></div>
+<div class="hbar"><span class="lab">新潤君頤社區</span><span class="track"><span class="fill" style="width:46.2%;background:#d35400"></span></span><span class="val">6 次／420 片</span></div>
+<div class="hbar"><span class="lab">阿默咖啡店</span><span class="track"><span class="fill" style="width:38.5%;background:#e67e22"></span></span><span class="val">5 次／630 片</span></div>
+<div class="hbar"><span class="lab">meet蘋果咖啡館</span><span class="track"><span class="fill" style="width:38.5%;background:#e67e22"></span></span><span class="val">5 次／350 片</span></div>
+<div class="hbar"><span class="lab">黑彼得咖啡</span><span class="track"><span class="fill" style="width:38.5%;background:#e67e22"></span></span><span class="val">5 次／119 片</span></div>
+<div class="hbar"><span class="lab">揪愛購</span><span class="track"><span class="fill" style="width:30.8%;background:#f0a35e"></span></span><span class="val">4 次／800 片</span></div>
+<div class="hbar"><span class="lab">咖竅咖啡</span><span class="track"><span class="fill" style="width:30.8%;background:#f0a35e"></span></span><span class="val">4 次／280 片</span></div>
+<div class="hbar"><span class="lab">正義魔人</span><span class="track"><span class="fill" style="width:30.8%;background:#f0a35e"></span></span><span class="val">4 次／280 片</span></div>
+<div class="hbar"><span class="lab">德佈咖啡</span><span class="track"><span class="fill" style="width:30.8%;background:#f0a35e"></span></span><span class="val">4 次／280 片</span></div>
+<div class="hbar"><span class="lab">小旺月喫茶店</span><span class="track"><span class="fill" style="width:30.8%;background:#f0a35e"></span></span><span class="val">4 次／280 片</span></div>
+<div class="hbar"><span class="lab">小捲尾咖啡</span><span class="track"><span class="fill" style="width:30.8%;background:#f0a35e"></span></span><span class="val">4 次／215 片</span></div>
+<div class="hbar"><span class="lab">蕭獻忠</span><span class="track"><span class="fill" style="width:23.1%;background:#f5c08a"></span></span><span class="val">3 次／322 片</span></div>
+</section>
+
+<section class="card">
+<h3>回購客每月購買次數（58 位，顏色越深＝次數越多）</h3>
+<div class="legend"><span><i style="background:#fde3c8"></i>1 次</span><span><i style="background:#f8b878"></i>2 次</span><span><i style="background:#f0893a"></i>3 次</span><span><i style="background:#c0392b"></i>4 次</span><span>　餅皮：<span class="t tb">薄</span><span class="t th">厚</span><span class="t tm">厚薄都有</span></span></div>
+<div class="scroll">
+<table>
+<tbody><tr><th>購買人</th><th style="text-align:center">8月</th><th style="text-align:center">9月</th><th style="text-align:center">10月*</th><th style="text-align:center">11月</th><th>次數</th><th>片數</th><th style="text-align:left">餅皮</th><th style="text-align:left">購買日期（片數）</th></tr>
+<tr><td>曾文水庫觀景樓餐廳</td><td class="h4">4</td><td class="h4">4</td><td class="h2">2</td><td class="h3">3</td><td><b>13</b></td><td>1,610</td><td style="text-align:left"><span class="t th">厚</span></td><td class="d">8/2(140)、8/9(140)、8/16(140)、8/30(70)、9/13(280)、9/20(70)、9/22(210)、9/28(140)、10/4(70)、10/11(70)、11/9(70)、11/17(70)、11/23(140)</td></tr>
+<tr><td>大聚鸚鵡螺廣場</td><td class="h3">3</td><td class="h3">3</td><td class="h1">1</td><td class="h1">1</td><td><b>8</b></td><td>1,400</td><td style="text-align:left"><span class="t tb">薄</span></td><td class="d">8/3(210)、8/23(140)、8/31(140)、9/8(140)、9/20(280)、9/29(140)、10/4(210)、11/10(140)</td></tr>
+<tr><td>昭日咖啡</td><td class="h3">3</td><td class="h2">2</td><td class="h0"></td><td class="h1">1</td><td><b>6</b></td><td>490</td><td style="text-align:left"><span class="t th">厚</span></td><td class="d">8/9(70)、8/16(70)、8/19(70)、9/7(70)、9/20(140)、11/13(70)</td></tr>
+<tr><td>GUGU Cafe</td><td class="h1">1</td><td class="h2">2</td><td class="h2">2</td><td class="h1">1</td><td><b>6</b></td><td>420</td><td style="text-align:left"><span class="t tb">薄</span></td><td class="d">8/31、9/15、9/22、10/11、10/29、11/18（每次 70）</td></tr>
+<tr><td>新潤君頤社區</td><td class="h2">2</td><td class="h1">1</td><td class="h1">1</td><td class="h2">2</td><td><b>6</b></td><td>420</td><td style="text-align:left"><span class="t tb">薄</span></td><td class="d">8/4、8/23、9/13、10/4、11/2、11/5（每次 70）</td></tr>
+<tr><td>阿默咖啡店</td><td class="h2">2</td><td class="h2">2</td><td class="h0"></td><td class="h1">1</td><td><b>5</b></td><td>630</td><td style="text-align:left"><span class="t tb">薄</span></td><td class="d">8/17(140)、8/31(70)、9/14(140)、9/21(140)、11/2(140)</td></tr>
+<tr><td>meet蘋果咖啡館</td><td class="h2">2</td><td class="h2">2</td><td class="h0"></td><td class="h1">1</td><td><b>5</b></td><td>350</td><td style="text-align:left"><span class="t tb">薄</span></td><td class="d">8/10、8/24、9/7、9/28、11/17（每次 70）</td></tr>
+<tr><td>黑彼得咖啡</td><td class="h3">3</td><td class="h2">2</td><td class="h0"></td><td class="h0"></td><td><b>5</b></td><td>119</td><td style="text-align:left"><span class="t tb">薄</span></td><td class="d">8/3(24)、8/17(20)、8/31(20)、9/14(30)、9/23(25)</td></tr>
+<tr><td>揪愛購 †</td><td class="h0"></td><td class="h2">2</td><td class="h0"></td><td class="h2">2</td><td><b>4</b></td><td>800</td><td style="text-align:left"><span class="t tm">都有</span></td><td class="d">9/4(180)、9/4(220)、11/19(200)、11/19(200)</td></tr>
+<tr><td>咖竅咖啡</td><td class="h1">1</td><td class="h2">2</td><td class="h0"></td><td class="h1">1</td><td><b>4</b></td><td>280</td><td style="text-align:left"><span class="t tb">薄</span></td><td class="d">8/2、9/7、9/29、11/18（每次 70）</td></tr>
+<tr><td>正義魔人</td><td class="h1">1</td><td class="h2">2</td><td class="h0"></td><td class="h1">1</td><td><b>4</b></td><td>280</td><td style="text-align:left"><span class="t th">厚</span></td><td class="d">8/16、9/7、9/21、11/6（每次 70）</td></tr>
+<tr><td>德佈咖啡</td><td class="h1">1</td><td class="h1">1</td><td class="h1">1</td><td class="h1">1</td><td><b>4</b></td><td>280</td><td style="text-align:left"><span class="t th">厚</span></td><td class="d">8/26、9/11、10/4、11/18（每次 70）</td></tr>
+<tr><td>小旺月喫茶店</td><td class="h1">1</td><td class="h1">1</td><td class="h0"></td><td class="h2">2</td><td><b>4</b></td><td>280</td><td style="text-align:left"><span class="t tb">薄</span></td><td class="d">8/25、9/18、11/5、11/18（每次 70）</td></tr>
+<tr><td>小捲尾咖啡</td><td class="h2">2</td><td class="h1">1</td><td class="h0"></td><td class="h1">1</td><td><b>4</b></td><td>215</td><td style="text-align:left"><span class="t tb">薄</span></td><td class="d">8/2(5 試吃)、8/7(70)、9/11(70)、11/2(70)</td></tr>
+<tr><td>蕭獻忠</td><td class="h1">1</td><td class="h1">1</td><td class="h0"></td><td class="h1">1</td><td><b>3</b></td><td>322</td><td style="text-align:left"><span class="t tm">都有</span></td><td class="d">8/17(127)、9/20(79)、11/2(116)</td></tr>
+<tr><td>李宇皓（買對動漫）</td><td class="h0"></td><td class="h1">1</td><td class="h2">2</td><td class="h0"></td><td><b>3</b></td><td>280</td><td style="text-align:left"><span class="t tb">薄</span></td><td class="d">9/23(70)、10/4(70)、10/11(140)</td></tr>
+<tr><td>蜜蜂故事館</td><td class="h1">1</td><td class="h1">1</td><td class="h0"></td><td class="h1">1</td><td><b>3</b></td><td>280</td><td style="text-align:left"><span class="t th">厚</span></td><td class="d">8/23(70)、9/14(140)、11/2(70)</td></tr>
+<tr><td>賈北松</td><td class="h2">2</td><td class="h1">1</td><td class="h0"></td><td class="h0"></td><td><b>3</b></td><td>210</td><td style="text-align:left"><span class="t tb">薄</span></td><td class="d">8/2、8/6、9/13（每次 70）</td></tr>
+<tr><td>義統餐飲集團</td><td class="h1">1</td><td class="h1">1</td><td class="h0"></td><td class="h1">1</td><td><b>3</b></td><td>210</td><td style="text-align:left"><span class="t th">厚</span></td><td class="d">8/6、9/28、11/24（每次 70）</td></tr>
+<tr><td>Chan Cafe</td><td class="h1">1</td><td class="h0"></td><td class="h1">1</td><td class="h1">1</td><td><b>3</b></td><td>210</td><td style="text-align:left"><span class="t tb">薄</span></td><td class="d">8/23、10/4、11/10（每次 70）</td></tr>
+<tr><td>理性與感性咖啡館</td><td class="h1">1</td><td class="h1">1</td><td class="h0"></td><td class="h1">1</td><td><b>3</b></td><td>185</td><td style="text-align:left"><span class="t tb">薄</span></td><td class="d">8/18(45)、9/22(70)、11/23(70)</td></tr>
+<tr><td>飲宅所COFFEE</td><td class="h1">1</td><td class="h1">1</td><td class="h0"></td><td class="h1">1</td><td><b>3</b></td><td>180</td><td style="text-align:left"><span class="t tb">薄</span></td><td class="d">8/16(70)、9/23(70)、11/13(40)</td></tr>
+<tr><td>佐登妮絲城堡</td><td class="h1">1</td><td class="h2">2</td><td class="h0"></td><td class="h0"></td><td><b>3</b></td><td>145</td><td style="text-align:left"><span class="t tb">薄</span></td><td class="d">8/25(5 試吃)、9/8(70)、9/29(70)</td></tr>
+<tr><td>陳思瑋</td><td class="h1">1</td><td class="h2">2</td><td class="h0"></td><td class="h0"></td><td><b>3</b></td><td>106</td><td style="text-align:left"><span class="t tm">都有</span></td><td class="d">8/13(35)、9/1(35)、9/23(36)</td></tr>
+<tr><td>生活咖啡</td><td class="h1">1</td><td class="h2">2</td><td class="h0"></td><td class="h0"></td><td><b>3</b></td><td>90</td><td style="text-align:left"><span class="t tb">薄</span></td><td class="d">8/4、9/11、9/29（每次 30）</td></tr>
+<tr><td>林巧雯</td><td class="h1">1</td><td class="h2">2</td><td class="h0"></td><td class="h0"></td><td><b>3</b></td><td>36</td><td style="text-align:left"><span class="t th">厚</span></td><td class="d">8/6、9/2、9/18（每次 12）</td></tr>
+<tr><td>黃婷儀</td><td class="h0"></td><td class="h1">1</td><td class="h0"></td><td class="h1">1</td><td><b>2</b></td><td>1,667</td><td style="text-align:left"><span class="t tm">都有</span></td><td class="d">9/14(834)、11/23(833)</td></tr>
+<tr><td>小寶團購</td><td class="h0"></td><td class="h1">1</td><td class="h0"></td><td class="h1">1</td><td><b>2</b></td><td>922</td><td style="text-align:left"><span class="t tm">都有</span></td><td class="d">9/17(445)、11/23(477)</td></tr>
+<tr><td>李佳穎</td><td class="h0"></td><td class="h1">1</td><td class="h0"></td><td class="h1">1</td><td><b>2</b></td><td>700</td><td style="text-align:left"><span class="t tm">都有</span></td><td class="d">9/22(400)、11/23(300)</td></tr>
+<tr><td>陳鈺豐</td><td class="h0"></td><td class="h1">1</td><td class="h0"></td><td class="h1">1</td><td><b>2</b></td><td>672</td><td style="text-align:left"><span class="t tm">都有</span></td><td class="d">9/14(353)、11/23(319)</td></tr>
+<tr><td>洪曉平</td><td class="h1">1</td><td class="h0"></td><td class="h0"></td><td class="h1">1</td><td><b>2</b></td><td>623</td><td style="text-align:left"><span class="t tm">都有</span></td><td class="d">8/10(243)、11/19(380)</td></tr>
+<tr><td>高淮龍 †</td><td class="h0"></td><td class="h2">2</td><td class="h0"></td><td class="h0"></td><td><b>2</b></td><td>570</td><td style="text-align:left"><span class="t tm">都有</span></td><td class="d">9/7(305)、9/7(265)</td></tr>
+<tr><td>陳立凱</td><td class="h0"></td><td class="h1">1</td><td class="h0"></td><td class="h1">1</td><td><b>2</b></td><td>456</td><td style="text-align:left"><span class="t tm">都有</span></td><td class="d">9/14(205)、11/23(251)</td></tr>
+<tr><td>梁瑋庭</td><td class="h0"></td><td class="h1">1</td><td class="h0"></td><td class="h1">1</td><td><b>2</b></td><td>417</td><td style="text-align:left"><span class="t tm">都有</span></td><td class="d">9/2(325)、11/10(92)</td></tr>
+<tr><td>高于喆 †</td><td class="h0"></td><td class="h0"></td><td class="h2">2</td><td class="h0"></td><td><b>2</b></td><td>340</td><td style="text-align:left"><span class="t tb">薄</span></td><td class="d">10/4(140)、10/4(200)</td></tr>
+<tr><td>許繼偉</td><td class="h0"></td><td class="h1">1</td><td class="h0"></td><td class="h1">1</td><td><b>2</b></td><td>325</td><td style="text-align:left"><span class="t tm">都有</span></td><td class="d">9/14(161)、11/23(164)</td></tr>
+<tr><td>張澤宏</td><td class="h2">2</td><td class="h0"></td><td class="h0"></td><td class="h0"></td><td><b>2</b></td><td>279</td><td style="text-align:left"><span class="t tm">都有</span></td><td class="d">8/2(86)、8/24(193)</td></tr>
+<tr><td>劉姵君</td><td class="h0"></td><td class="h1">1</td><td class="h0"></td><td class="h1">1</td><td><b>2</b></td><td>244</td><td style="text-align:left"><span class="t tm">都有</span></td><td class="d">9/4(129)、11/11(115)</td></tr>
+<tr><td>劉家彰</td><td class="h0"></td><td class="h1">1</td><td class="h0"></td><td class="h1">1</td><td><b>2</b></td><td>231</td><td style="text-align:left"><span class="t tm">都有</span></td><td class="d">9/4(120)、11/11(111)</td></tr>
+<tr><td>杜鶴君（田小姐）</td><td class="h1">1</td><td class="h1">1</td><td class="h0"></td><td class="h0"></td><td><b>2</b></td><td>226</td><td style="text-align:left"><span class="t tm">都有</span></td><td class="d">8/17(150)、9/1(76)</td></tr>
+<tr><td>合進行-海盛</td><td class="h1">1</td><td class="h1">1</td><td class="h0"></td><td class="h0"></td><td><b>2</b></td><td>218</td><td style="text-align:left"><span class="t tm">都有</span></td><td class="d">8/27(148)、9/9(70)</td></tr>
+<tr><td>根本在旅行</td><td class="h1">1</td><td class="h0"></td><td class="h0"></td><td class="h1">1</td><td><b>2</b></td><td>210</td><td style="text-align:left"><span class="t tb">薄</span></td><td class="d">8/21(70)、11/24(140)</td></tr>
+<tr><td>張傑（李鮮生）†</td><td class="h0"></td><td class="h2">2</td><td class="h0"></td><td class="h0"></td><td><b>2</b></td><td>192</td><td style="text-align:left"><span class="t tm">都有</span></td><td class="d">9/7(119)、9/7(73)</td></tr>
+<tr><td>品域（鍾佳霓）</td><td class="h1">1</td><td class="h0"></td><td class="h1">1</td><td class="h0"></td><td><b>2</b></td><td>178</td><td style="text-align:left"><span class="t tb">薄</span></td><td class="d">8/30(140)、10/4(38)</td></tr>
+<tr><td>呂鈺彤</td><td class="h1">1</td><td class="h1">1</td><td class="h0"></td><td class="h0"></td><td><b>2</b></td><td>174</td><td style="text-align:left"><span class="t tm">都有</span></td><td class="d">8/17(70)、9/18(104)</td></tr>
+<tr><td>張予薰 †</td><td class="h0"></td><td class="h0"></td><td class="h0"></td><td class="h2">2</td><td><b>2</b></td><td>161</td><td style="text-align:left"><span class="t tm">都有</span></td><td class="d">11/5(91)、11/5(70)</td></tr>
+<tr><td>姚芊嬅（白宮）</td><td class="h2">2</td><td class="h0"></td><td class="h0"></td><td class="h0"></td><td><b>2</b></td><td>140</td><td style="text-align:left"><span class="t tb">薄</span></td><td class="d">8/10、8/23</td></tr>
+<tr><td>239咖啡</td><td class="h1">1</td><td class="h1">1</td><td class="h0"></td><td class="h0"></td><td><b>2</b></td><td>140</td><td style="text-align:left"><span class="t tb">薄</span></td><td class="d">8/25、9/28</td></tr>
+<tr><td>陳鵬翔（靠過來桌遊）</td><td class="h1">1</td><td class="h0"></td><td class="h0"></td><td class="h1">1</td><td><b>2</b></td><td>140</td><td style="text-align:left"><span class="t th">厚</span></td><td class="d">8/28、11/19</td></tr>
+<tr><td>大房子親子餐廳</td><td class="h1">1</td><td class="h0"></td><td class="h1">1</td><td class="h0"></td><td><b>2</b></td><td>140</td><td style="text-align:left"><span class="t th">厚</span></td><td class="d">8/30、10/4</td></tr>
+<tr><td>紫武園</td><td class="h0"></td><td class="h1">1</td><td class="h0"></td><td class="h1">1</td><td><b>2</b></td><td>140</td><td style="text-align:left"><span class="t th">厚</span></td><td class="d">9/7、11/2</td></tr>
+<tr><td>新北市農會文山農場</td><td class="h1">1</td><td class="h0"></td><td class="h0"></td><td class="h1">1</td><td><b>2</b></td><td>140</td><td style="text-align:left"><span class="t tb">薄</span></td><td class="d">8/13、11/19</td></tr>
+<tr><td>青文珈琲</td><td class="h1">1</td><td class="h1">1</td><td class="h0"></td><td class="h0"></td><td><b>2</b></td><td>140</td><td style="text-align:left"><span class="t tb">薄</span></td><td class="d">8/4、9/7</td></tr>
+<tr><td>芳庭義大利麵坊</td><td class="h1">1</td><td class="h0"></td><td class="h0"></td><td class="h1">1</td><td><b>2</b></td><td>140</td><td style="text-align:left"><span class="t th">厚</span></td><td class="d">8/18、11/17</td></tr>
+<tr><td>新裕興咖啡</td><td class="h1">1</td><td class="h1">1</td><td class="h0"></td><td class="h0"></td><td><b>2</b></td><td>118</td><td style="text-align:left"><span class="t tb">薄</span></td><td class="d">8/16(48)、9/14(70)</td></tr>
+<tr><td>鴻苑社區</td><td class="h1">1</td><td class="h0"></td><td class="h0"></td><td class="h1">1</td><td><b>2</b></td><td>110</td><td style="text-align:left"><span class="t tb">薄</span></td><td class="d">8/17(70)、11/2(40)</td></tr>
+<tr><td>張嘉祐</td><td class="h0"></td><td class="h1">1</td><td class="h0"></td><td class="h1">1</td><td><b>2</b></td><td>108</td><td style="text-align:left"><span class="t tm">都有</span></td><td class="d">9/9(38)、11/9(70)</td></tr>
+<tr><td>莉莉咖啡</td><td class="h1">1</td><td class="h0"></td><td class="h0"></td><td class="h1">1</td><td><b>2</b></td><td>60</td><td style="text-align:left"><span class="t tb">薄</span></td><td class="d">8/19(30)、11/21(30)</td></tr>
+</tbody></table>
+</div>
+<div class="note">💡 <b>8～11 月每個月都有買</b>：曾文水庫、大聚、GUGU、新潤君頤、德佈咖啡。<br>💡 <b>團購大約每 2 個月訂一次</b>：黃婷儀、陳鈺豐、陳立凱、許繼偉（9/14 → 11/23）｜小寶團購（9/17 → 11/23）｜李佳穎（9/22 → 11/23）｜劉姵君、劉家彰（9/4 → 11/11）｜梁瑋庭（9/2 → 11/10）。下一輪大約在 1 月中，可以提早備料。<br>† 同一天分不同地點出貨，所以算 2 筆。｜* 10 月只有 3 天的檔案。</div>
+<details>
+<summary>只買過 1 次的購買人（80 位，點開查看）</summary>
+<b>8月（18 位）</b>：杜雅鈴 850、廖展暉 309、李威德 238、林思宏 219、游牡丹 188、張潤庭 178、許銘慈 168、陳盈蓉 134、陳小鈺 102、廖梓岑 85、何淑華 84、林純如 76、品羚 73、劉豐瑞 73、朱宭沂 70、月桂有限公司 70、喜憨兒桃園南門店 70、時代劇商行 70<br>
+<b>9月（48 位）</b>：古乙伶 565、娘娘抖團購 483、青柚購 260、陳嘉容 250、何銘隆 239、王子淇 178、陳奕叡 176、洪嘉威 169、蘇筱喻 147、朱小姐 135、吳明哲 129、黃秋蘭 123、張博雅 116、姚芊羚 110、何宜聰 101、蔡瓅葶 96、林采綾 95、曾梅芳 95、陳葦庭 93、李梓萱 92、林美綺 86、張元信 84、廖怡玲 83、張恆綺 81、林雅雯 80、游大慶 80、關思婕 77、陳政諭 77、陳致瑋 76、游勝淵 73、蘇淑貞 71、簡婉茹 70、游先生 70、鍾曉曄 70、鐘小姐 70、林書宏 70、吳小娟 70、晴境易得 70、賽博洋行 70、貝可麗植福店 70、戲咖啡 70、紫荷印象 70、陳品錡 70、smart coffee 70、王怡瑾 70、啡堡 45、鄭子濬 35、QQ田試吃 7<br>
+<b>10月（2 位）</b>：張琇晴 160、翁郁智 140<br>
+<b>11月（12 位）</b>：張秋云 245、陳怡嘉 182、謝千絢 116、楊宜展 111、范杰宇 105、張妮妮 97、侯碧雲 90、莊育芳 84、聊療貓bar 70、墨門珈琲 70、林美慧 70、新營水果王 16
+</details>
+</section>
+
+<footer>本頁沒有使用任何程式，用瀏覽器打開就能顯示。資料：2026/8/2～11/24 私單檔案，共 258 筆。口味排行依各訂單的口味明細加總。</footer>
+
+
+</body></html>
